@@ -36,42 +36,104 @@ export default function AuthPage() {
     }
 
     if (user && !profile) {
+        // Check if metadata is missing
+        const isMetadataMissing = !user.user_metadata.role;
+
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Error</h2>
+
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        {isMetadataMissing ? 'Complete Account Setup' : 'Profile Error'}
+                    </h2>
+
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                        We found your account but couldn't load your profile data.
+                        {isMetadataMissing
+                            ? 'Your account was created but is missing some details. Please complete your setup below.'
+                            : 'We found your account but couldn\'t load your profile data.'}
                     </p>
-                    <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-left text-xs font-mono overflow-auto max-h-32">
-                        <p className="font-bold mb-1">Debug Info:</p>
-                        <p>User ID: {user.id}</p>
-                        <p>Metadata: {JSON.stringify(user.user_metadata, null, 2)}</p>
-                    </div>
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
-                        >
-                            Retry Loading
-                        </button>
-                        <button
-                            onClick={async () => {
-                                const { createClient } = await import('@/lib/supabase/client');
-                                const supabase = createClient();
-                                await supabase.auth.signOut();
-                                window.location.reload();
-                            }}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                            Sign Out & Try Again
-                        </button>
-                    </div>
+
+                    {isMetadataMissing ? (
+                        <form className="text-left space-y-4" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const role = formData.get('role') as string;
+                            const fullName = formData.get('fullName') as string;
+
+                            if (!role || !fullName) return;
+
+                            const { createClient } = await import('@/lib/supabase/client');
+                            const supabase = createClient();
+
+                            // Update user metadata
+                            await supabase.auth.updateUser({
+                                data: { role, full_name: fullName }
+                            });
+
+                            // Create profile manually
+                            await supabase.from('profiles').insert({
+                                id: user.id,
+                                email: user.email,
+                                full_name: fullName,
+                                role: role,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                            });
+
+                            if (role === 'tailor') {
+                                await supabase.from('tailor_profiles').insert({ user_id: user.id });
+                            } else {
+                                await supabase.from('customer_profiles').insert({ user_id: user.id });
+                            }
+
+                            window.location.reload();
+                        }}>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                                <input name="fullName" required className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="John Doe" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">I am a...</label>
+                                <select name="role" required className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                                    <option value="customer">Customer</option>
+                                    <option value="tailor">Tailor</option>
+                                </select>
+                            </div>
+                            <button type="submit" className="w-full py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90">
+                                Complete Setup
+                            </button>
+                        </form>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-left text-xs font-mono overflow-auto max-h-32">
+                                <p className="font-bold mb-1">Debug Info:</p>
+                                <p>User ID: {user.id}</p>
+                                <p>Metadata: {JSON.stringify(user.user_metadata, null, 2)}</p>
+                            </div>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="w-full px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                            >
+                                Retry Loading
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const { createClient } = await import('@/lib/supabase/client');
+                                    const supabase = createClient();
+                                    await supabase.auth.signOut();
+                                    window.location.reload();
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                Sign Out & Try Again
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
