@@ -46,8 +46,13 @@ export default function AuthPage() {
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Error</h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                        We found your account but couldn't load your profile data. This usually happens if the account setup wasn't completed.
+                        We found your account but couldn't load your profile data.
                     </p>
+                    <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-left text-xs font-mono overflow-auto max-h-32">
+                        <p className="font-bold mb-1">Debug Info:</p>
+                        <p>User ID: {user.id}</p>
+                        <p>Metadata: {JSON.stringify(user.user_metadata, null, 2)}</p>
+                    </div>
                     <div className="space-y-3">
                         <button
                             onClick={() => window.location.reload()}
