@@ -1,142 +1,79 @@
-'use client';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getAllTailors } from '@/lib/actions/order';
+import Link from 'next/link';
+import Image from 'next/image';
 
-import { useAuth } from '@/lib/auth/auth-context';
-import { motion } from 'framer-motion';
-import { fadeInUp } from '@/lib/animations/variants';
-import { useRouter } from 'next/navigation';
-
-export default function CustomerExplore() {
-    const { profile, signOut, loading } = useAuth();
-    const router = useRouter();
-
-    const handleSignOut = async () => {
-        await signOut();
-        router.push('/auth');
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)]"></div>
-            </div>
-        );
-    }
+export default async function ExplorePage() {
+    const { data: tailors } = await getAllTailors();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--color-bg)] to-purple-50 dark:from-[var(--color-bg-dark)] dark:to-gray-900 p-8">
-            <motion.div
-                className="max-w-6xl mx-auto"
-                initial="initial"
-                animate="animate"
-                variants={fadeInUp}
-            >
-                {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-                            Welcome, {profile?.full_name}! 🛍️
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">
-                            Discover talented tailors and create your custom wardrobe
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleSignOut}
-                        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
-                    >
-                        Sign Out
-                    </button>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Find a Tailor</h1>
+                    <Link href="/customer/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-[var(--color-primary)] font-medium">
+                        My Dashboard
+                    </Link>
                 </div>
+            </header>
 
-                {/* Hero Section */}
-                <motion.div
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-8 text-white mb-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                >
-                    <h2 className="text-3xl font-bold mb-2">Find Your Perfect Tailor</h2>
-                    <p className="mb-6 opacity-90 text-lg">
-                        Browse talented tailors, try on designs virtually with AI, and get custom-made clothing
-                    </p>
-                    <button className="px-8 py-3 bg-white text-purple-600 rounded-lg font-medium hover:bg-gray-100 transition-all shadow-lg">
-                        Browse Tailors
-                    </button>
-                </motion.div>
-
-                {/* Features Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <motion.div
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
-                            <span className="text-2xl">🤖</span>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {tailors?.map((tailor) => (
+                        <div key={tailor.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="aspect-video bg-gray-100 dark:bg-gray-700 relative">
+                                {tailor.portfolio_images?.[0] ? (
+                                    <img
+                                        src={tailor.portfolio_images[0]}
+                                        alt={tailor.business_name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                )}
+                                <div className="absolute top-4 right-4 bg-white dark:bg-gray-900 px-2 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                                    <span className="text-yellow-500">★</span>
+                                    {tailor.rating}
+                                </div>
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                    {tailor.business_name || tailor.profile?.full_name}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    {tailor.location || 'Location not specified'}
+                                </p>
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {tailor.specialties?.slice(0, 3).map((spec: string) => (
+                                        <span key={spec} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-medium rounded-md text-gray-600 dark:text-gray-300">
+                                            {spec}
+                                        </span>
+                                    ))}
+                                    {tailor.specialties?.length > 3 && (
+                                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-medium rounded-md text-gray-600 dark:text-gray-300">
+                                            +{tailor.specialties.length - 3} more
+                                        </span>
+                                    )}
+                                </div>
+                                <Link
+                                    href={`/tailor/${tailor.user_id}/book`}
+                                    className="block w-full py-2 bg-[var(--color-primary)] text-white text-center rounded-lg font-medium hover:opacity-90 transition-opacity"
+                                >
+                                    Book Now
+                                </Link>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            AI Virtual Try-On
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            See how designs look on you before ordering with our AI technology
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center mb-4">
-                            <span className="text-2xl">👔</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            Expert Tailors
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Connect with skilled tailors who bring your fashion vision to life
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
-                            <span className="text-2xl">✨</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            Custom Designs
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Get perfectly fitted, one-of-a-kind clothing made just for you
-                        </p>
-                    </motion.div>
+                    ))}
                 </div>
-
-                {/* Featured Tailors */}
-                <div className="mt-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Featured Tailors</h2>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-                        <p className="text-gray-500 dark:text-gray-400">No tailors available yet</p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                            Check back soon to discover talented tailors in your area
-                        </p>
-                    </div>
-                </div>
-
-                {/* My Orders */}
-                <div className="mt-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">My Orders</h2>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-                        <p className="text-gray-500 dark:text-gray-400">No orders yet</p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                            Start browsing tailors to place your first order
-                        </p>
-                    </div>
-                </div>
-            </motion.div>
+            </main>
         </div>
     );
 }

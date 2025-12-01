@@ -1,59 +1,42 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { getTailorOrders } from '@/lib/actions/order';
+import Link from 'next/link';
 
 export default async function TailorDashboard() {
     const supabase = await createServerSupabaseClient();
-
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect('/auth');
-    }
+    if (!session) redirect('/auth');
 
-    // Fetch tailor profile
+    const { data: orders } = await getTailorOrders(session.user.id);
+
+    // Fetch tailor profile for header
     const { data: profile } = await supabase
         .from('tailor_profiles')
         .select('*')
         .eq('user_id', session.user.id)
         .single();
 
-    // Fetch user name
-    const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', session.user.id)
-        .single();
-
     const isProfileComplete = profile?.business_name && profile?.location && profile?.specialties?.length > 0;
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* Header */}
             <header className="bg-white dark:bg-gray-800 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tailor Dashboard</h1>
                     <div className="flex items-center gap-4">
-                        <span className="text-gray-600 dark:text-gray-300">
-                            {profile?.business_name || userProfile?.full_name}
-                        </span>
-                        <div className="w-10 h-10 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold">
-                            {(profile?.business_name || userProfile?.full_name || 'T')[0].toUpperCase()}
-                        </div>
+                        <Link href="/tailor/profile" className="text-gray-600 dark:text-gray-400 hover:text-[var(--color-primary)] font-medium">
+                            Edit Profile
+                        </Link>
+                        <form action="/auth/signout" method="post">
+                            <button className="text-red-600 hover:text-red-700 font-medium">Sign Out</button>
+                        </form>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Welcome Section */}
-                <div className="mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                        Welcome back, {userProfile?.full_name?.split(' ')[0]}!
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Here's what's happening with your business today.
-                    </p>
-                </div>
-
                 {!isProfileComplete && (
                     <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 flex items-center justify-between">
                         <div>
@@ -64,52 +47,83 @@ export default async function TailorDashboard() {
                                 Add your business details and portfolio to start receiving orders.
                             </p>
                         </div>
-                        <a
+                        <Link
                             href="/tailor/profile"
                             className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         >
                             Setup Profile
-                        </a>
+                        </Link>
                     </div>
                 )}
 
-                {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Active Orders</h3>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
+                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Orders</h3>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                            {orders?.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length || 0}
+                        </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Total Revenue</h3>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white">$0.00</p>
+                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Revenue</h3>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                            ${orders?.reduce((acc, o) => acc + (o.total_amount || 0), 0).toFixed(2)}
+                        </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Rating</h3>
-                        <div className="flex items-center gap-1">
-                            <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                                {profile?.rating || '0.0'}
-                            </span>
-                            <span className="text-yellow-400 text-xl">★</span>
-                        </div>
+                        <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Completed Orders</h3>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                            {orders?.filter(o => o.status === 'completed').length || 0}
+                        </p>
                     </div>
                 </div>
 
-                {/* Recent Orders */}
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recent Orders</h2>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Orders</h3>
-                        <button className="text-[var(--color-primary)] text-sm font-medium hover:underline">
-                            View All
-                        </button>
-                    </div>
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 py-12">
-                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                        </div>
-                        <p className="font-medium">No orders yet</p>
-                        <p className="text-sm mt-1">Orders will appear here once customers start booking.</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order ID</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {orders?.map((order) => (
+                                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                                            #{order.id.slice(0, 8)}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            {order.customer?.profile?.full_name}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                    order.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                }`}>
+                                                {order.status.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            ${order.total_amount}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            {new Date(order.created_at).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {(!orders || orders.length === 0) && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                            No orders found yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </main>
