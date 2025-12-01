@@ -53,27 +53,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
-    const fetchProfile = async (userId: string, retries = 3) => {
+    const fetchProfile = async (user: User, retries = 3) => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('id', userId)
+                .eq('id', user.id)
                 .single();
 
             if (error) {
-                // If profile not found and we have retries left, wait and try again
-                if (error.code === 'PGRST116' && retries > 0) {
-                    console.log('Profile not found, retrying...', retries);
+                // If profile not found (PGRST116)
+                if (error.code === 'PGRST116') {
+                    console.log('Profile not found. Attempting to auto-create...');
+
+                    // Auto-heal: Create profile from user metadata
+                    const { role, full_name } = user.user_metadata;
+
+                    if (role) {
+                        // 1. Create base profile
+                        const { error: createError } = await supabase
+                            .from('profiles')
+                            .insert({
+                                id: user.id,
+                                email: user.email,
+                                full_name: full_name || user.email?.split('@')[0],
+                                role: role,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                            });
+
+                        if (createError) {
+                            console.error('Failed to auto-create profile:', createError);
+                            throw createError;
+                        }
+
+                        // 2. Create role-specific profile
+                        if (role === 'tailor') {
+                            await supabase.from('tailor_profiles').insert({ user_id: user.id });
+                        } else if (role === 'customer') {
+                            await supabase.from('customer_profiles').insert({ user_id: user.id });
+                        }
+
+                        // 3. Retry fetching immediately
+                        return fetchProfile(user, 0);
+                    }
+                }
+
+                // Retry logic for other errors or if auto-create failed
+                if (retries > 0) {
+                    console.log('Error fetching profile, retrying...', retries);
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    return fetchProfile(userId, retries - 1);
+                    return fetchProfile(user, retries - 1);
                 }
                 throw error;
             }
             setProfile(data);
         } catch (error) {
             console.error('Error fetching profile:', JSON.stringify(error, null, 2));
-            // Set profile to null if we can't fetch it
             setProfile(null);
         } finally {
             setLoading(false);
