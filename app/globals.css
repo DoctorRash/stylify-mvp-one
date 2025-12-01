@@ -16,6 +16,8 @@
   --color-accent: #D4AF37;
 }
 
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 [data-theme="dark"] {
   --background: var(--color-bg-dark);
   --foreground: #ededed;
