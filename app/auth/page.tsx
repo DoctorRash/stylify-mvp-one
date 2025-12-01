@@ -24,6 +24,65 @@ export default function AuthPage() {
         }
     }, [user, profile, loading, router]);
 
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Loading your account...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (user && !profile) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Error</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        We found your account but couldn't load your profile data. This usually happens if the account setup wasn't completed.
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                        >
+                            Retry Loading
+                        </button>
+                        <button
+                            onClick={async () => {
+                                const { createClient } = await import('@/lib/supabase/client');
+                                const supabase = createClient();
+                                await supabase.auth.signOut();
+                                window.location.reload();
+                            }}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            Sign Out & Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (user && profile) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Redirecting to dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[var(--color-bg)] to-purple-50 dark:from-[var(--color-bg-dark)] dark:to-gray-900 px-4">
             <motion.div
