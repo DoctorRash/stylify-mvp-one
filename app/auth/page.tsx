@@ -13,7 +13,9 @@ export default function AuthPage() {
 
     // Handle redirect when user is authenticated and profile is loaded
     useEffect(() => {
+        console.log('AuthPage Effect:', { user: !!user, profile: !!profile, loading, role: profile?.role });
         if (user && profile && !loading) {
+            console.log('Redirecting to:', profile.role === 'tailor' ? '/tailor/dashboard' : '/customer/explore');
             if (profile.role === 'tailor') {
                 router.push('/tailor/dashboard');
             } else if (profile.role === 'customer') {
