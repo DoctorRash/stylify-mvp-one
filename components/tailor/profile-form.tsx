@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { updateTailorProfile, TailorProfileUpdateData } from '@/lib/actions/tailor';
 import ImageUpload from '@/components/ui/image-upload';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -167,8 +167,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                             type="button"
                             onClick={() => toggleSpecialty(specialty)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${currentSpecialties.includes(specialty)
-                                    ? 'bg-[var(--color-primary)] text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                ? 'bg-[var(--color-primary)] text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                         >
                             {specialty}
