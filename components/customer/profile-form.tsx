@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { updateCustomerProfile } from '@/lib/actions/customer';
@@ -108,24 +108,27 @@ export default function CustomerProfileForm({ initialData }: ProfileFormProps) {
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Measurements (cm)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    {['height', 'chest', 'waist', 'hips', 'inseam'].map((measure) => (
-                        <div key={measure}>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 capitalize">
-                                {measure}
-                            </label>
-                            <input
-                                type="number"
-                                step="0.1"
-                                {...register(`measurements.${measure}` as any, { valueAsNumber: true })}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] dark:bg-gray-700 dark:text-white"
-                            />
-                            {errors.measurements?.[measure as keyof typeof errors.measurements] && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.measurements[measure as keyof typeof errors.measurements]?.message}
-                                </p>
-                            )}
-                        </div>
-                    ))}
+                    {(['height', 'chest', 'waist', 'hips', 'inseam'] as const).map((measure) => {
+                        const error = errors.measurements?.[measure] as FieldError | undefined;
+                        return (
+                            <div key={measure}>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 capitalize">
+                                    {measure}
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    {...register(`measurements.${measure}`, { valueAsNumber: true })}
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] dark:bg-gray-700 dark:text-white"
+                                />
+                                {error && (
+                                    <p className="mt-1 text-sm text-red-500">
+                                        {error.message}
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
