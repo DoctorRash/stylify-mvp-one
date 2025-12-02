@@ -52,9 +52,16 @@ export default function ImageUpload({ onUpload, bucketName, folderPath = '', cla
                 .getPublicUrl(filePath);
 
             onUpload(publicUrl);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error uploading image:', err);
-            setError('Failed to upload image');
+            // Log detailed error for debugging
+            if (err?.message) {
+                console.error('Upload error message:', err.message);
+            }
+            if (err?.statusCode) {
+                console.error('Upload error status:', err.statusCode);
+            }
+            setError(err?.message || 'Failed to upload image. Please try again.');
         } finally {
             setUploading(false);
             if (fileInputRef.current) {
