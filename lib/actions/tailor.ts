@@ -57,3 +57,48 @@ export async function getTailorProfile(userId: string) {
         return { data: null, error: error as Error };
     }
 }
+
+export async function getTailorBySlug(slug: string) {
+    const supabase = await createServerSupabaseClient();
+
+    try {
+        const { data, error } = await supabase
+            .from('tailor_profiles')
+            .select('*, profiles:user_id(full_name, avatar_url)')
+            .eq('slug', slug)
+            .single();
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Error fetching tailor by slug:', error);
+        return { data: null, error: error as Error };
+    }
+}
+
+export async function getAllTailors(filters?: { location?: string; specialty?: string }) {
+    const supabase = await createServerSupabaseClient();
+
+    try {
+        let query = supabase
+            .from('tailor_profiles')
+            .select('*, profiles:user_id(full_name, avatar_url)')
+            .not('slug', 'is', null);
+
+        if (filters?.location) {
+            query = query.ilike('location', `%${filters.location}%`);
+        }
+
+        if (filters?.specialty) {
+            query = query.contains('specialties', [filters.specialty]);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Error fetching tailors:', error);
+        return { data: [], error: error as Error };
+    }
+}

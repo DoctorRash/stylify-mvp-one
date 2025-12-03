@@ -37,7 +37,7 @@ export default async function TailorDashboard() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {!isProfileComplete && (
+                {!isProfileComplete ? (
                     <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
@@ -52,6 +52,27 @@ export default async function TailorDashboard() {
                             className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         >
                             Setup Profile
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="mb-8 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-1">
+                                Your Public Profile is Live!
+                            </h3>
+                            <p className="text-green-700 dark:text-green-300 text-sm">
+                                Share your profile with customers:
+                                <a href={`/tailors/${profile.slug}`} target="_blank" className="ml-2 font-mono underline hover:text-green-900 dark:hover:text-green-100">
+                                    {`/tailors/${profile.slug}`}
+                                </a>
+                            </p>
+                        </div>
+                        <Link
+                            href={`/tailors/${profile.slug}`}
+                            target="_blank"
+                            className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                        >
+                            View Profile
                         </Link>
                     </div>
                 )}
@@ -101,8 +122,8 @@ export default async function TailorDashboard() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                    order.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                order.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                                                 }`}>
                                                 {order.status.replace('_', ' ')}
                                             </span>
