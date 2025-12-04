@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { createOrder } from '@/lib/actions/order';
 
 // Validation Schemas
 const step1Schema = z.object({
@@ -104,45 +105,28 @@ export default function BookingForm({ tailorId, specialties }: BookingFormProps)
         setError(null);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
+            // Import dynamically to avoid server-only module issues in client component if not handled by Next.js automatically
+            // But usually server actions can be imported directly.
+            // Let's assume createOrder is imported at top level.
 
-            // 1. Create Order
-            const { data: order, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    customer_id: user.id,
-                    tailor_id: tailorId,
-                    status: 'pending',
-                    total_amount: 0,
-                    notes: data.notes,
-                })
-                .select()
-                .single();
+            const result = await createOrder({
+                tailor_id: tailorId,
+                garment_type: data.garment_type,
+                fabric_type: data.fabric_type,
+                notes: data.notes,
+                measurements: data.measurements,
+            });
 
-            if (orderError) throw orderError;
-
-            // 2. Create Order Item
-            const { error: itemError } = await supabase
-                .from('order_items')
-                .insert({
-                    order_id: order.id,
-                    garment_type: data.garment_type,
-                    fabric_type: data.fabric_type,
-                    measurements: data.measurements,
-                    price: 0,
-                });
-
-            if (itemError) throw itemError;
+            if (result.error) throw new Error(result.error);
 
             // Clear draft
             localStorage.removeItem(`booking_draft_${tailorId}`);
 
             router.push('/customer/dashboard');
             router.refresh();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error creating order:', err);
-            setError('Failed to create order. Please try again.');
+            setError(err.message || 'Failed to create order. Please try again.');
         } finally {
             setSubmitting(false);
         }
