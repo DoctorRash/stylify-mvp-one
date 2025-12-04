@@ -47,12 +47,18 @@ export default async function PublicTailorProfile({ params }: { params: Promise<
                                         </span>
                                     </div>
                                 </div>
-                                <Link
-                                    href={`/tailor/${tailor.user_id}/book`}
-                                    className="px-8 py-3 bg-[var(--color-primary)] text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-center"
-                                >
-                                    Book Now
-                                </Link>
+                                {tailor.user_id ? (
+                                    <Link
+                                        href={`/tailor/${tailor.user_id}/book`}
+                                        className="relative z-10 px-8 py-3 bg-[var(--color-primary)] text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-center cursor-pointer"
+                                    >
+                                        Book Now
+                                    </Link>
+                                ) : (
+                                    <button disabled className="px-8 py-3 bg-gray-300 text-gray-500 rounded-lg font-bold cursor-not-allowed">
+                                        Unavailable
+                                    </button>
+                                )}
                             </div>
                             <p className="text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed">
                                 {tailor.bio}
