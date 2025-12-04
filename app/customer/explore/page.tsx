@@ -21,12 +21,12 @@ export default async function ExplorePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tailors?.map((tailor) => (
                         <div key={tailor.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                            <div className="aspect-video bg-gray-100 dark:bg-gray-700 relative">
+                            <Link href={`/tailors/${tailor.slug}`} className="block aspect-video bg-gray-100 dark:bg-gray-700 relative group">
                                 {tailor.portfolio_images?.[0] ? (
                                     <img
                                         src={tailor.portfolio_images[0]}
                                         alt={tailor.business_name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -39,11 +39,13 @@ export default async function ExplorePage() {
                                     <span className="text-yellow-500">★</span>
                                     {tailor.rating}
                                 </div>
-                            </div>
+                            </Link>
                             <div className="p-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                                    {tailor.business_name || tailor.profile?.full_name}
-                                </h3>
+                                <Link href={`/tailors/${tailor.slug}`} className="block group">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-[var(--color-primary)] transition-colors">
+                                        {tailor.business_name || tailor.profile?.full_name}
+                                    </h3>
+                                </Link>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -64,10 +66,10 @@ export default async function ExplorePage() {
                                     )}
                                 </div>
                                 <Link
-                                    href={`/tailor/${tailor.user_id}/book`}
-                                    className="block w-full py-2 bg-[var(--color-primary)] text-white text-center rounded-lg font-medium hover:opacity-90 transition-opacity"
+                                    href={`/tailors/${tailor.slug}`}
+                                    className="block w-full py-2 bg-white border-2 border-[var(--color-primary)] text-[var(--color-primary)] text-center rounded-lg font-medium hover:bg-[var(--color-primary)] hover:text-white transition-colors"
                                 >
-                                    Book Now
+                                    View Profile
                                 </Link>
                             </div>
                         </div>

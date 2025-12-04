@@ -10,44 +10,55 @@ export async function generateTryOn(formData: FormData) {
         return { error: 'Not authenticated' };
     }
 
-    const image = formData.get('image') as File;
-    const garmentType = formData.get('garmentType') as string;
+    const userImage = formData.get('userImage') as File;
+    const garmentImage = formData.get('garmentImage') as File;
 
-    if (!image) {
-        return { error: 'No image provided' };
-    }
-
-    // 1. Upload user image to Supabase Storage
-    const fileExt = image.name.split('.').pop();
-    const fileName = `${session.user.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-        .from('try-on-images') // We might need to create this bucket
-        .upload(fileName, image);
-
-    if (uploadError) {
-        console.error('Upload error:', uploadError);
-        return { error: 'Failed to upload image' };
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-        .from('try-on-images')
-        .getPublicUrl(fileName);
-
-    // 2. Call AI API (Replicate)
-    // Using a popular virtual try-on model (e.g., IDM-VTON or similar)
-    // For MVP, we'll use a placeholder or a generic image-to-image model if specific VTON isn't available
-    // Assuming Replicate for now as per guide
-
-    const REPLICATE_API_TOKEN = process.env.AI_API_KEY;
-
-    if (!REPLICATE_API_TOKEN) {
-        return { error: 'AI service not configured' };
+    if (!userImage || !garmentImage) {
+        return { error: 'Both user and garment images are required' };
     }
 
     try {
-        // This is a placeholder for the actual Replicate API call
-        // We would typically use a model like 'cuuupid/idm-vton'
+        // 1. Upload user image to Supabase Storage
+        const userFileExt = userImage.name.split('.').pop();
+        const userFileName = `${session.user.id}/user_${Math.random().toString(36).substring(2)}.${userFileExt}`;
+
+        const { error: userUploadError } = await supabase.storage
+            .from('try-on-images')
+            .upload(userFileName, userImage);
+
+        if (userUploadError) {
+            console.error('User image upload error:', userUploadError);
+            return { error: 'Failed to upload user image' };
+        }
+
+        const { data: { publicUrl: userPublicUrl } } = supabase.storage
+            .from('try-on-images')
+            .getPublicUrl(userFileName);
+
+        // 2. Upload garment image to Supabase Storage
+        const garmentFileExt = garmentImage.name.split('.').pop();
+        const garmentFileName = `${session.user.id}/garment_${Math.random().toString(36).substring(2)}.${garmentFileExt}`;
+
+        const { error: garmentUploadError } = await supabase.storage
+            .from('try-on-images')
+            .upload(garmentFileName, garmentImage);
+
+        if (garmentUploadError) {
+            console.error('Garment image upload error:', garmentUploadError);
+            return { error: 'Failed to upload garment image' };
+        }
+
+        const { data: { publicUrl: garmentPublicUrl } } = supabase.storage
+            .from('try-on-images')
+            .getPublicUrl(garmentFileName);
+
+        // 3. Call Replicate API with IDM-VTON model
+        const REPLICATE_API_TOKEN = process.env.AI_API_KEY;
+
+        if (!REPLICATE_API_TOKEN) {
+            return { error: 'AI service not configured' };
+        }
+
         const response = await fetch('https://api.replicate.com/v1/predictions', {
             method: 'POST',
             headers: {
@@ -55,11 +66,13 @@ export async function generateTryOn(formData: FormData) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                version: "c871e91cab9694f69950995c34526801332a2b4070d690a618f3e5559d454746", // Example version
+                // Using IDM-VTON model - popular virtual try-on model
+                version: "c871bb9b046607b680ea2b8e19f5f71b4ec2c99b5f9c64e2b36e2c3b8c1e6f62",
                 input: {
-                    human_img: publicUrl,
-                    garm_img: "https://replicate.delivery/pbxt/K9D5h5q5.../garment.jpg", // We need a garment image source
-                    garment_des: garmentType,
+                    human_img: userPublicUrl,
+                    garm_img: garmentPublicUrl,
+                    // Optional parameters for better results
+                    garment_des: "clothing", // Can be customized based on garment type
                 }
             }),
         });
@@ -67,17 +80,46 @@ export async function generateTryOn(formData: FormData) {
         if (!response.ok) {
             const error = await response.json();
             console.error('Replicate error:', error);
-            return { error: 'AI generation failed' };
+            return { error: 'AI generation failed. Please check your API key and try again.' };
         }
 
         const prediction = await response.json();
 
-        // In a real app, we'd poll for the result. 
-        // For this MVP step, we'll return the prediction ID to poll client-side or handle it here.
         return { predictionId: prediction.id, status: prediction.status };
 
     } catch (err) {
         console.error('AI Try-On error:', err);
         return { error: 'Failed to generate try-on' };
+    }
+}
+
+export async function getTryOnResult(predictionId: string) {
+    const REPLICATE_API_TOKEN = process.env.AI_API_KEY;
+
+    if (!REPLICATE_API_TOKEN) {
+        return { error: 'AI service not configured' };
+    }
+
+    try {
+        const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+            headers: {
+                'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return { error: 'Failed to fetch prediction status' };
+        }
+
+        const prediction = await response.json();
+        return {
+            status: prediction.status,
+            output: prediction.output // Replicate returns output as array of image URLs usually
+        };
+
+    } catch (err) {
+        console.error('Error fetching try-on result:', err);
+        return { error: 'Failed to check status' };
     }
 }

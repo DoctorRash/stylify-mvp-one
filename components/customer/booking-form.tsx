@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { createOrder } from '@/lib/actions/order';
+import TryOnDialog from './try-on-dialog';
 
 // Validation Schemas
 const step1Schema = z.object({
@@ -47,6 +48,7 @@ export default function BookingForm({ tailorId, specialties }: BookingFormProps)
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showTryOn, setShowTryOn] = useState(false);
     const supabase = createClient();
 
     const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<BookingFormData>({
@@ -183,7 +185,7 @@ export default function BookingForm({ tailorId, specialties }: BookingFormProps)
                                             <button
                                                 type="button"
                                                 className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
-                                                onClick={() => alert('AI Try-On feature coming soon! (Backend ready)')}
+                                                onClick={() => setShowTryOn(true)}
                                             >
                                                 Try it now
                                             </button>
@@ -337,6 +339,13 @@ export default function BookingForm({ tailorId, specialties }: BookingFormProps)
                     )}
                 </div>
             </form>
+
+            {showTryOn && (
+                <TryOnDialog
+                    garmentType={formData.garment_type || 'Custom Garment'}
+                    onClose={() => setShowTryOn(false)}
+                />
+            )}
         </div>
     );
 }
