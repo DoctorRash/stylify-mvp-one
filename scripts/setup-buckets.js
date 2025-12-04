@@ -2,6 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Read .env.local manually since we're not in Next.js context
 const envPath = path.resolve(__dirname, '../.env.local');
 let env = {};
