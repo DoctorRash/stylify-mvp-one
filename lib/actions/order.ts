@@ -61,3 +61,76 @@ export async function createOrder(data: CreateOrderData) {
         return { error: err.message || 'Failed to create order' };
     }
 }
+
+export async function getCustomerOrders(userId: string) {
+    const supabase = await createServerSupabaseClient();
+
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                tailor:tailor_id (
+                    full_name,
+                    tailor_profiles (
+                        business_name
+                    )
+                )
+            `)
+            .eq('customer_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Transform data to match frontend expectations
+        const formattedOrders = data.map(order => ({
+            ...order,
+            tailor: order.tailor ? {
+                ...order.tailor,
+                business_name: order.tailor.tailor_profiles?.[0]?.business_name,
+                profile: {
+                    full_name: order.tailor.full_name
+                }
+            } : null
+        }));
+
+        return { data: formattedOrders, error: null };
+    } catch (error) {
+        console.error('Error fetching customer orders:', error);
+        return { data: [], error: error as Error };
+    }
+}
+
+export async function getTailorOrders(userId: string) {
+    const supabase = await createServerSupabaseClient();
+
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                customer:customer_id (
+                    full_name
+                )
+            `)
+            .eq('tailor_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Transform data to match frontend expectations
+        const formattedOrders = data.map(order => ({
+            ...order,
+            customer: order.customer ? {
+                profile: {
+                    full_name: order.customer.full_name
+                }
+            } : null
+        }));
+
+        return { data: formattedOrders, error: null };
+    } catch (error) {
+        console.error('Error fetching tailor orders:', error);
+        return { data: [], error: error as Error };
+    }
+}

@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getAllTailors } from '@/lib/actions/order';
+import { getAllTailors } from '@/lib/actions/tailor';
 import Link from 'next/link';
 import Image from 'next/image';
 
