@@ -180,6 +180,34 @@ export default function BookingForm({ tailorId, specialties }: BookingFormProps)
                             className="space-y-6"
                         >
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Style & Fabric</h3>
+
+                            {/* AI Try-On Section */}
+                            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6 mb-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                                        <span className="text-2xl">✨</span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                                            AI Virtual Try-On
+                                        </h4>
+                                        <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
+                                            Upload a photo of yourself to see how this garment style might look on you.
+                                        </p>
+
+                                        <div className="flex gap-4">
+                                            <button
+                                                type="button"
+                                                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                                                onClick={() => alert('AI Try-On feature coming soon! (Backend ready)')}
+                                            >
+                                                Try it now
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Garment Type
