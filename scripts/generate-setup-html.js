@@ -7,9 +7,18 @@ let env = {};
 try {
     const envFile = fs.readFileSync(envPath, 'utf8');
     envFile.split('\n').forEach(line => {
-        const [key, value] = line.split('=');
-        if (key && value) {
-            env[key.trim()] = value.trim();
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+            const [key, ...valueParts] = trimmedLine.split('=');
+            if (key && valueParts.length > 0) {
+                let value = valueParts.join('=').trim();
+                // Remove surrounding quotes if present
+                if ((value.startsWith('"') && value.endsWith('"')) ||
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
+                env[key.trim()] = value;
+            }
         }
     });
 } catch (e) {

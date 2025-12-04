@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check & Fix Buckets</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        .info {
+            color: #2196F3;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🪣 Supabase Bucket Checker & Fixer</h1>
+        <p>This tool will check your Supabase storage buckets and help fix any issues.</p>
+
+        <div>
+            <button onclick="checkBuckets()">1. Check Bucket Status</button>
+            <button onclick="createMissingBuckets()">2. Create Missing Buckets</button>
+            <button onclick="checkTailorProfiles()">3. Check Tailor Profiles</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // REPLACE THESE WITH YOUR ACTUAL VALUES FROM .env.local
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SERVICE_KEY = 'YOUR_SERVICE_KEY';
+
+        const supabase = supabase.createClient(SUPABASE_URL, SERVICE_KEY);
+        const resultsDiv = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            resultsDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        async function checkBuckets() {
+            resultsDiv.innerHTML = '';
+            log('🔍 Checking storage buckets...', 'info');
+
+            try {
+                const { data: buckets, error } = await supabase.storage.listBuckets();
+
+                if (error) {
+                    log(`❌ Error: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`\n✅ Found ${buckets.length} total buckets\n`, 'success');
+
+                const required = ['portfolios', 'try-on-images'];
+                const existing = buckets.map(b => b.name);
+
+                required.forEach(name => {
+                    if (existing.includes(name)) {
+                        const bucket = buckets.find(b => b.name === name);
+                        log(`✅ ${name}`, 'success');
+                        log(`   Public: ${bucket.public}`, 'info');
+                    } else {
+                        log(`❌ ${name} - MISSING!`, 'error');
+                    }
+                });
+
+                // Test upload
+                log('\n🧪 Testing upload to portfolios bucket...', 'info');
+                const testData = new Blob(['test'], { type: 'text/plain' });
+                const testPath = `test-${Date.now()}.txt`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('portfolios')
+                    .upload(testPath, testData);
+
+                if (uploadError) {
+                    log(`❌ Upload FAILED: ${uploadError.message}`, 'error');
+                    log('   This is why you\'re getting "Bucket not found" errors!', 'error');
+                } else {
+                    log('✅ Upload test PASSED!', 'success');
+                    // Cleanup
+                    await supabase.storage.from('portfolios').remove([testPath]);
+                }
+
+            } catch (err) {
+                log(`❌ Unexpected error: ${err.message}`, 'error');
+            }
+        }
+
+        async function createMissingBuckets() {
+            resultsDiv.innerHTML = '';
+            log('🔨 Creating missing buckets...', 'info');
+
+            const buckets = [
+                { name: 'portfolios', public: true },
+                { name: 'try-on-images', public: true }
+            ];
+
+            for (const bucket of buckets) {
+                try {
+                    log(`\nCreating ${bucket.name}...`, 'info');
+
+                    const { data, error } = await supabase.storage.createBucket(bucket.name, {
+                        public: bucket.public,
+                        fileSizeLimit: 5242880 // 5MB
+                    });
+
+                    if (error) {
+                        if (error.message.includes('already exists')) {
+                            log(`⚠️  ${bucket.name} already exists`, 'warning');
+                        } else {
+                            log(`❌ Error: ${error.message}`, 'error');
+                        }
+                    } else {
+                        log(`✅ Created ${bucket.name}!`, 'success');
+                    }
+                } catch (err) {
+                    log(`❌ Error creating ${bucket.name}: ${err.message}`, 'error');
+                }
+            }
+
+            log('\n✅ Done! Run "Check Bucket Status" again to verify.', 'success');
+        }
+
+        async function checkTailorProfiles() {
+            resultsDiv.innerHTML = '';
+            log('👔 Checking tailor profiles...', 'info');
+
+            try {
+                const { data: tailors, error } = await supabase
+                    .from('tailor_profiles')
+                    .select('id, business_name, slug, location, specialties, user_id, profiles:user_id(email)');
+
+                if (error) {
+                    log(`❌ Error: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`\n✅ Found ${tailors.length} tailor profiles\n`, 'success');
+
+                tailors.forEach((t, i) => {
+                    const isComplete = t.business_name && t.slug && t.location && t.specialties?.length > 0;
+                    const status = isComplete ? '✅ COMPLETE' : '⚠️  INCOMPLETE';
+
+                    log(`${status} Tailor #${i + 1}`, isComplete ? 'success' : 'warning');
+                    log(`   Business: ${t.business_name || 'NOT SET'}`, isComplete ? 'info' : 'warning');
+                    log(`   Slug: ${t.slug || 'NOT SET (won\'t show on explore!)'}`, isComplete ? 'info' : 'error');
+                    log(`   Location: ${t.location || 'NOT SET'}`, 'info');
+                    log(`   Specialties: ${t.specialties?.length || 0} items`, 'info');
+                    log(`   Email: ${t.profiles?.email || 'N/A'}`, 'info');
+                    log('', 'info');
+                });
+
+                const completeTailors = tailors.filter(t => t.business_name && t.slug);
+                log(`\n📊 Summary:`, 'info');
+                log(`   Total: ${tailors.length}`, 'info');
+                log(`   Complete (will show on explore): ${completeTailors.length}`, completeTailors.length > 0 ? 'success' : 'error');
+
+                if (completeTailors.length === 0) {
+                    log(`\n⚠️  NO TAILORS WILL SHOW ON EXPLORE PAGE!`, 'error');
+                    log(`   Tailors must have business_name and slug to appear.`, 'warning');
+                }
+
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
